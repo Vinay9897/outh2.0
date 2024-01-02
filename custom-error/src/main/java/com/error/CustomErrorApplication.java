@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import static org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction.oauth2AuthorizedClient;
+
 
 @SpringBootApplication
 @RestController
@@ -44,32 +46,32 @@ public class CustomErrorApplication extends WebSecurityConfigurerAdapter {
 				.filter(oauth2).build();
 	}
 
-//	@Bean
-//	public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService(WebClient rest) {
-//		DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
-//		return request -> {
-//			OAuth2User user = delegate.loadUser(request);
-//			if (!"github".equals(request.getClientRegistration().getRegistrationId())) {
-//				return user;
-//			}
-//
-//			OAuth2AuthorizedClient client = new OAuth2AuthorizedClient
-//					(request.getClientRegistration(), user.getName(), request.getAccessToken());
-//			String url = user.getAttribute("organizations_url");
-//			List<Map<String, Object>> orgs = rest
-//					.get().uri(url)
-//					.attributes(oauth2AuthorizedClient(client))
-//					.retrieve()
-//					.bodyToMono(List.class)
-//					.block();
-//
-//			if (orgs.stream().anyMatch(org -> "spring-projects".equals(org.get("login")))) {
-//				return user;
-//			}
-//
-//			throw new OAuth2AuthenticationException(new OAuth2Error("invalid_token", "Not in Spring Team", ""));
-//		};
-//	}
+	@Bean
+	public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService(WebClient rest) {
+		DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
+		return request -> {
+			OAuth2User user = delegate.loadUser(request);
+			if (!"github".equals(request.getClientRegistration().getRegistrationId())) {
+				return user;
+			}
+
+			OAuth2AuthorizedClient client = new OAuth2AuthorizedClient
+					(request.getClientRegistration(), user.getName(), request.getAccessToken());
+			String url = user.getAttribute("organizations_url");
+			List<Map<String, Object>> orgs = rest
+					.get().uri(url)
+					.attributes(oauth2AuthorizedClient(client))
+					.retrieve()
+					.bodyToMono(List.class)
+					.block();
+
+			if (orgs.stream().anyMatch(org -> "spring-projects".equals(org.get("login")))) {
+				return user;
+			}
+
+			throw new OAuth2AuthenticationException(new OAuth2Error("invalid_token", "Not in Spring Team", ""));
+		};
+	}
 
 	@GetMapping("/user")
 	@ResponseBody
